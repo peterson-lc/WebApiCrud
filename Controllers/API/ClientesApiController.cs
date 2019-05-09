@@ -1,12 +1,8 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using WebApiCrud.Data;
 using WebApiCrud.Models;
+using WebApiCrud.Services;
 
 namespace WebApiCrud.Controllers.API
 {
@@ -15,9 +11,8 @@ namespace WebApiCrud.Controllers.API
     [ApiController]
     public class ClientesApiController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
-
-        public ClientesApiController(ApplicationDbContext context)
+        private readonly ClienteService _context;
+        public ClientesApiController(ClienteService context)
         {
             _context = context;
         }
@@ -26,19 +21,19 @@ namespace WebApiCrud.Controllers.API
         [HttpGet]
         public IEnumerable<Cliente> GetClientes()
         {
-            return _context.Clientes;
-        }
+            return _context.Get();
+        }      
 
         // GET: api/ClientesApi/5
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetCliente([FromRoute] int id)
+        public async Task<IActionResult> GetCliente([FromRoute] string id)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            var cliente = await _context.Clientes.FindAsync(id);
+            var cliente = _context.Get(id);
 
             if (cliente == null)
             {
@@ -50,7 +45,7 @@ namespace WebApiCrud.Controllers.API
 
         // PUT: api/ClientesApi/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutCliente([FromRoute] int id, [FromBody] Cliente cliente)
+        public async Task<IActionResult> PutCliente([FromRoute] string id, Cliente cliente)
         {
             if (!ModelState.IsValid)
             {
@@ -62,66 +57,40 @@ namespace WebApiCrud.Controllers.API
                 return BadRequest();
             }
 
-            _context.Entry(cliente).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!ClienteExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            _context.Update(id, cliente);
 
             return NoContent();
         }
 
         // POST: api/ClientesApi
         [HttpPost]
-        public async Task<IActionResult> PostCliente([FromBody] Cliente cliente)
+        public async Task<IActionResult> PostCliente(Cliente cliente)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            _context.Clientes.Add(cliente);
-            await _context.SaveChangesAsync();
+            _context.Create(cliente);
 
             return CreatedAtAction("GetCliente", new { id = cliente.Id }, cliente);
         }
 
         // DELETE: api/ClientesApi/5
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteCliente([FromRoute] int id)
+        public async Task<IActionResult> DeleteCliente(string id)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            var cliente = _context.Get(id);
 
-            var cliente = await _context.Clientes.FindAsync(id);
             if (cliente == null)
             {
                 return NotFound();
             }
 
-            _context.Clientes.Remove(cliente);
-            await _context.SaveChangesAsync();
+            _context.Remove(cliente.Id);
+
 
             return Ok(cliente);
-        }
-
-        private bool ClienteExists(int id)
-        {
-            return _context.Clientes.Any(e => e.Id == id);
         }
     }
 }
